@@ -30,11 +30,8 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 	@ExceptionHandler(EntidadeNaoEcontradaException.class)
 	public ResponseEntity<Object> handleEntidadeNaoEncontrada(EntidadeNaoEcontradaException ex, WebRequest request) {
 		HttpStatus status = HttpStatus.NOT_FOUND;
-		Problema problema = new Problema();
 
-		problema.setStatus(status.value());
-		problema.setTitulo(ex.getMessage());
-		problema.setDataHora(OffsetDateTime.now());
+		Problema problema = retornaProblema(status, OffsetDateTime.now(), ex.getMessage(), null);
 
 		return handleExceptionInternal(ex, problema, new HttpHeaders(), status, request);
 	}
@@ -42,11 +39,8 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 	@ExceptionHandler(NegocioException.class)
 	public ResponseEntity<Object> handleNegocio(NegocioException ex, WebRequest request) {
 		HttpStatus status = HttpStatus.BAD_REQUEST;
-		Problema problema = new Problema();
 
-		problema.setStatus(status.value());
-		problema.setTitulo(ex.getMessage());
-		problema.setDataHora(OffsetDateTime.now());
+		Problema problema = retornaProblema(status, OffsetDateTime.now(), ex.getMessage(), null);
 
 		return handleExceptionInternal(ex, problema, new HttpHeaders(), status, request);
 	}
@@ -56,6 +50,8 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 			HttpHeaders headers, HttpStatus status, WebRequest request) {
 		// TODO Auto-generated method stub
 		List<Campo> listaCampos = new ArrayList<Campo>();
+		String titulo = "Um ou mais campos estão inválidos."
+				+ "Por favor verificar se existem campos não preenchidos ou preenchidos fora do padrão aceitável.";
 
 		for (ObjectError error : ex.getBindingResult().getAllErrors()) {
 			String nomeCampo = ((FieldError) error).getField();
@@ -63,13 +59,19 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 			listaCampos.add(new Campo(nomeCampo, mensagem));
 		}
 
+		Problema problema = retornaProblema(status, OffsetDateTime.now(), titulo, listaCampos);
+
+		return super.handleExceptionInternal(ex, problema, headers, status, request);
+	}
+
+	private Problema retornaProblema(HttpStatus status, OffsetDateTime data, String titulo, List<Campo> listaCampos) {
 		Problema problema = new Problema();
 
 		problema.setStatus(status.value());
 		problema.setDataHora(OffsetDateTime.now());
-		problema.setTitulo("Um ou mais campos estão inválidos."
-				+ "Por favor verificar se existem campos não preenchidos ou preenchidos fora do padrão aceitável.");
+		problema.setTitulo(titulo);
 		problema.setCampos(listaCampos);
-		return super.handleExceptionInternal(ex, problema, headers, status, request);
+
+		return problema;
 	}
 }
